@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ماشین حساب علمی - محمد سجاد جعفری</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Tahoma, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(45deg, #1a1a1a, #2c3e50);
+        }
+
+        .calculator {
+            background: #333;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            width: 350px;
+        }
+
+        #display {
+            width: 100%;
+            height: 80px;
+            margin-bottom: 15px;
+            font-size: 32px;
+            text-align: left;
+            padding: 10px;
+            background: #98fb98;
+            border: none;
+            border-radius: 8px;
+            direction: ltr;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        button {
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            filter: brightness(1.2);
+        }
+
+        .number {
+            background: #666;
+            color: white;
+        }
+
+        .operator {
+            background: #ff9500;
+            color: white;
+        }
+
+        .scientific {
+            background: #9b59b6;
+            color: white;
+            font-size: 14px;
+        }
+
+        .equal {
+            background: #27ae60;
+            color: white;
+        }
+
+        .clear {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .creator {
+            text-align: center;
+            color: #fff;
+            margin-top: 15px;
+            font-size: 14px;
+            padding: 5px;
+            background: #34495e;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="creator">طراحی شده توسط محمد سجاد جعفری</div>
+        <input type="text" id="display" disabled>
+        <div class="buttons">
+            <button class="scientific" onclick="sin()">sin</button>
+            <button class="scientific" onclick="cos()">cos</button>
+            <button class="scientific" onclick="tan()">tan</button>
+            <button class="scientific" onclick="log()">log</button>
+            <button class="scientific" onclick="sqrt()">√</button>
+            
+            <button class="clear" onclick="clearDisplay()">C</button>
+            <button class="operator" onclick="appendToDisplay('(')">(</button>
+            <button class="operator" onclick="appendToDisplay(')')">)</button>
+            <button class="operator" onclick="appendToDisplay('^')">^</button>
+            <button class="operator" onclick="appendToDisplay('%')">%</button>
+            
+            <button class="number" onclick="appendToDisplay('7')">7</button>
+            <button class="number" onclick="appendToDisplay('8')">8</button>
+            <button class="number" onclick="appendToDisplay('9')">9</button>
+            <button class="operator" onclick="appendToDisplay('/')">/</button>
+            <button class="scientific" onclick="factorial()">n!</button>
+            
+            <button class="number" onclick="appendToDisplay('4')">4</button>
+            <button class="number" onclick="appendToDisplay('5')">5</button>
+            <button class="number" onclick="appendToDisplay('6')">6</button>
+            <button class="operator" onclick="appendToDisplay('*')">×</button>
+            <button class="scientific" onclick="ln()">ln</button>
+            
+            <button class="number" onclick="appendToDisplay('1')">1</button>
+            <button class="number" onclick="appendToDisplay('2')">2</button>
+            <button class="number" onclick="appendToDisplay('3')">3</button>
+            <button class="operator" onclick="appendToDisplay('-')">-</button>
+            <button class="scientific" onclick="exp()">exp</button>
+            
+            <button class="number" onclick="appendToDisplay('0')">0</button>
+            <button class="number" onclick="appendToDisplay('.')">.</button>
+            <button class="equal" onclick="calculate()" style="grid-column: span 2">=</button>
+            <button class="operator" onclick="appendToDisplay('+')">+</button>
+            <button class="scientific" onclick="pi()">π</button>
+        </div>
+    </div>
+
+    <script>
+        const display = document.getElementById('display');
+
+        function appendToDisplay(value) {
+            display.value += value;
+        }
+
+        function clearDisplay() {
+            display.value = '';
+        }
+
+        function calculate() {
+            try {
+                let expr = display.value
+                    .replace(/\^/g, '**')
+                    .replace(/π/g, Math.PI)
+                    .replace(/sqrt/g, 'Math.sqrt')
+                    .replace(/sin/g, 'Math.sin')
+                    .replace(/cos/g, 'Math.cos')
+                    .replace(/tan/g, 'Math.tan')
+                    .replace(/log/g, 'Math.log10')
+                    .replace(/ln/g, 'Math.log')
+                    .replace(/exp/g, 'Math.exp');
+                
+                display.value = eval(expr);
+            } catch (error) {
+                display.value = 'Error';
+            }
+        }
+
+        // Scientific Functions
+        function sin() { appendToDisplay('sin('); }
+        function cos() { appendToDisplay('cos('); }
+        function tan() { appendToDisplay('tan('); }
+        function log() { appendToDisplay('log('); }
+        function sqrt() { appendToDisplay('sqrt('); }
+        function ln() { appendToDisplay('ln('); }
+        function exp() { appendToDisplay('exp('); }
+        function pi() { appendToDisplay('π'); }
+        
+        function factorial() {
+            let num = parseFloat(display.value);
+            if (num < 0) return display.value = 'Error';
+            let result = 1;
+            for(let i = 2; i <= num; i++) result *= i;
+            display.value = result;
+        }
+    </script>
+</body>
+</html>

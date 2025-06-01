@@ -1,0 +1,730 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دفترچه یادداشت</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .container {
+            max-width: 700px;
+            width: 100%;
+            background: inherit;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: none;
+            border: 2px solid #007bff;
+            transition: transform 0.2s;
+        }
+        .container:hover {
+            transform: translateY(-5px);
+        }
+        h1, h3 {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: white;
+            transition: border-color 0.3s;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+        button {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 5px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        .note {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #007bff;
+            transition: box-shadow 0.3s;
+        }
+        .note:hover {
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+        .settings {
+            margin: 15px 0;
+            padding: 15px;
+            background: inherit;
+            border-radius: 8px;
+            border: 2px dashed #28a745;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .settings label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 25px;
+            width: 90%;
+            max-width: 450px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border: 2px solid #ffc107;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .btn-view { background: #28a745; color: white; }
+        .btn-edit { background: #ffc107; color: black; }
+        .btn-delete { background: #dc3545; color: white; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        #passwordModal { display: block; }
+        #defaultPasswordText {
+            color: #007bff;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        #searchInput {
+            margin-bottom: 20px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            font-size: 16px;
+        }
+        .error {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .dark-mode {
+            background-color: #1a1a1a !important;
+            color: #e0e0e0 !important;
+        }
+        .note-title {
+            max-width: 60%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #noteColor {
+            width: 50px;
+            padding: 0;
+            height: 30px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <h3 id="passwordModalTitle">رمز عبور را وارد کنید</h3>
+            <p id="defaultPasswordText">رمز اولیه: 1234 (کلیک کنید)</p>
+            <input type="password" id="passwordInput" placeholder="رمز عبور...">
+            <button id="submitPassword" class="btn-primary icon-btn">
+                <i class="fas fa-sign-in-alt"></i> <span id="submitPasswordText">ورود</span>
+            </button>
+            <p id="passwordError" class="error"></p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 id="title">دفترچه یادداشت شخصی</h1>
+        <h3 id="createdBy">ساخته شده توسط گروه کد نویسی مدرسه حافظان وحی</h3>
+
+        <div class="settings">
+            <label id="textColorLabel">رنگ متن:</label>
+            <input type="color" id="textColor" value="#333333">
+            <label id="bgColorLabel">رنگ پس‌زمینه:</label>
+            <input type="color" id="bgColor" value="#f0f2f5">
+            <label id="fontLabel">فونت:</label>
+            <select id="fontSelector">
+                <option value="Arial">Arial</option>
+                <option value="Tahoma">Tahoma</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Vazirmatn">Vazirmatn</option>
+            </select>
+            <label id="darkModeLabel">حالت شب:</label>
+            <input type="checkbox" id="darkModeToggle">
+            <label id="languageLabel">زبان:</label>
+            <select id="languageSelector">
+                <option value="fa">فارسی</option>
+                <option value="en">English</option>
+                <option value="ar">العربية</option>
+            </select>
+            <label id="changePasswordLabel">تغییر رمز:</label>
+            <button id="changePasswordButton" class="btn-primary icon-btn">
+                <i class="fas fa-lock"></i> <span id="changePasswordText">تغییر رمز</span>
+            </button>
+        </div>
+
+        <input type="text" id="searchInput" placeholder="جست‌وجوی یادداشت...">
+        <input type="text" id="noteTitle" placeholder="عنوان یادداشت...">
+        <textarea id="noteInput" placeholder="متن یادداشت..." rows="4"></textarea>
+        <label id="noteColorLabel">رنگ متن یادداشت:</label>
+        <input type="color" id="noteColor" value="#333333">
+        <button id="addNoteButton" class="btn-primary icon-btn">
+            <i class="fas fa-plus"></i> <span id="addNoteText">افزودن یادداشت</span>
+        </button>
+        <div id="notesContainer"></div>
+    </div>
+
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle"></h3>
+            <p id="modalContent"></p>
+            <button id="closeModalButton" class="btn-secondary icon-btn">
+                <i class="fas fa-times"></i> <span id="closeModalText">بستن</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="confirmDeleteModal" class="modal">
+        <div class="modal-content">
+            <p id="confirmMessage"></p>
+            <button id="confirmYes" class="btn-delete icon-btn">
+                <i class="fas fa-check"></i> <span id="confirmYesText">بله</span>
+            </button>
+            <button id="confirmNo" class="btn-secondary icon-btn">
+                <i class="fas fa-times"></i> <span id="confirmNoText">خیر</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content">
+            <h3 id="changePasswordModalTitle">تغییر رمز عبور</h3>
+            <input type="password" id="newPasswordInput" placeholder="رمز جدید...">
+            <input type="password" id="confirmNewPasswordInput" placeholder="تأیید رمز جدید...">
+            <button id="submitNewPassword" class="btn-primary icon-btn">
+                <i class="fas fa-save"></i> <span id="submitNewPasswordText">ذخیره رمز</span>
+            </button>
+            <button id="cancelChangePassword" class="btn-secondary icon-btn">
+                <i class="fas fa-times"></i> <span id="cancelChangePasswordText">لغو</span>
+            </button>
+            <p id="changePasswordError" class="error"></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const translations = {
+                fa: {
+                    title: "دفترچه یادداشت شخصی",
+                    createdBy: "ساخته شده توسط گروه کد نویسی مدرسه حافظان وحی",
+                    textColor: "رنگ متن:",
+                    bgColor: "رنگ پس‌زمینه:",
+                    font: "فونت:",
+                    darkMode: "حالت شب:",
+                    language: "زبان:",
+                    noteColor: "رنگ متن یادداشت:",
+                    addNote: "افزودن یادداشت",
+                    saveChanges: "ذخیره تغییرات",
+                    view: "مشاهده",
+                    edit: "ویرایش",
+                    delete: "حذف",
+                    close: "بستن",
+                    confirmDelete: "آیا از حذف این یادداشت مطمئن هستید؟",
+                    noteTitlePlaceholder: "عنوان یادداشت...",
+                    noteTextPlaceholder: "متن یادداشت...",
+                    searchPlaceholder: "جست‌وجوی یادداشت...",
+                    yes: "بله",
+                    no: "خیر",
+                    passwordModalTitle: "رمز عبور را وارد کنید",
+                    passwordPlaceholder: "رمز عبور...",
+                    submitPassword: "ورود",
+                    passwordError: "رمز عبور نادرست است! رمز اولیه: 1234",
+                    defaultPasswordText: "رمز اولیه: 1234 (کلیک کنید)",
+                    changePasswordLabel: "تغییر رمز:",
+                    changePasswordButton: "تغییر رمز",
+                    changePasswordModalTitle: "تغییر رمز عبور",
+                    newPasswordPlaceholder: "رمز جدید...",
+                    confirmNewPasswordPlaceholder: "تأیید رمز جدید...",
+                    submitNewPassword: "ذخیره رمز",
+                    cancelChangePassword: "لغو",
+                    changePasswordError: "رمزها مطابقت ندارند یا خالی هستند!",
+                    direction: "rtl",
+                    textAlign: "right"
+                },
+                en: {
+                    title: "Personal Notebook",
+                    createdBy: "Created by Hafezan Vahy School Coding Group",
+                    textColor: "Text Color:",
+                    bgColor: "Background Color:",
+                    font: "Font:",
+                    darkMode: "Dark Mode:",
+                    language: "Language:",
+                    noteColor: "Note Text Color:",
+                    addNote: "Add Note",
+                    saveChanges: "Save Changes",
+                    view: "View",
+                    edit: "Edit",
+                    delete: "Delete",
+                    close: "Close",
+                    confirmDelete: "Are you sure you want to delete this note?",
+                    noteTitlePlaceholder: "Note Title...",
+                    noteTextPlaceholder: "Note Text...",
+                    searchPlaceholder: "Search Notes...",
+                    yes: "Yes",
+                    no: "No",
+                    passwordModalTitle: "Enter Password",
+                    passwordPlaceholder: "Password...",
+                    submitPassword: "Login",
+                    passwordError: "Incorrect password! Default: 1234",
+                    defaultPasswordText: "Default Password: 1234 (click to use)",
+                    changePasswordLabel: "Change Password:",
+                    changePasswordButton: "Change Password",
+                    changePasswordModalTitle: "Change Password",
+                    newPasswordPlaceholder: "New Password...",
+                    confirmNewPasswordPlaceholder: "Confirm New Password...",
+                    submitNewPassword: "Save Password",
+                    cancelChangePassword: "Cancel",
+                    changePasswordError: "Passwords do not match or are empty!",
+                    direction: "ltr",
+                    textAlign: "left"
+                },
+                ar: {
+                    title: "دفتر ملاحظات شخصي",
+                    createdBy: "تم إنشاؤه بواسطة مجموعة البرمجة في مدرسة حافظان وحي",
+                    textColor: "لون النص:",
+                    bgColor: "لون الخلفية:",
+                    font: "الخط:",
+                    darkMode: "الوضع الليلي:",
+                    language: "اللغة:",
+                    noteColor: "لون نص الملاحظة:",
+                    addNote: "إضافة ملاحظة",
+                    saveChanges: "حفظ التغييرات",
+                    view: "عرض",
+                    edit: "تعديل",
+                    delete: "حذف",
+                    close: "إغلاق",
+                    confirmDelete: "هل أنت متأكد من حذف هذه الملاحظة؟",
+                    noteTitlePlaceholder: "عنوان الملاحظة...",
+                    noteTextPlaceholder: "نص الملاحظة...",
+                    searchPlaceholder: "البحث في الملاحظات...",
+                    yes: "نعم",
+                    no: "لا",
+                    passwordModalTitle: "أدخل كلمة المرور",
+                    passwordPlaceholder: "كلمة المرور...",
+                    submitPassword: "تسجيل الدخول",
+                    passwordError: "كلمة المرور غير صحيحة! الافتراضي: 1234",
+                    defaultPasswordText: "كلمة المرور الافتراضية: 1234 (انقر للاستخدام)",
+                    changePasswordLabel: "تغيير كلمة المرور:",
+                    changePasswordButton: "تغيير كلمة المرور",
+                    changePasswordModalTitle: "تغيير كلمة المرور",
+                    newPasswordPlaceholder: "كلمة المرور الجديدة...",
+                    confirmNewPasswordPlaceholder: "تأكيد كلمة المرور الجديدة...",
+                    submitNewPassword: "حفظ كلمة المرور",
+                    cancelChangePassword: "إلغاء",
+                    changePasswordError: "كلمات المرور غير متطابقة أو فارغة!",
+                    direction: "rtl",
+                    textAlign: "right"
+                }
+            };
+
+            let editingIndex = null;
+            let currentLanguage = localStorage.getItem("language") || "fa";
+            let isAuthenticated = false;
+            const defaultPassword = "1234";
+            let storedPassword = localStorage.getItem("password") || defaultPassword;
+
+            function checkPassword() {
+                const passwordInputElement = document.querySelector("#passwordInput");
+                const errorElement = document.querySelector("#passwordError");
+                const passwordModal = document.querySelector("#passwordModal");
+                const container = document.querySelector(".container");
+
+                if (!passwordInputElement || !errorElement || !passwordModal || !container) {
+                    console.error("Required elements not found");
+                    return;
+                }
+
+                const passwordInput = passwordInputElement.value;
+                console.log("Entered:", passwordInput, "Stored:", storedPassword); // Debug
+
+                if (!passwordInput) {
+                    errorElement.style.display = "block";
+                    errorElement.textContent = translations[currentLanguage].passwordError;
+                    return;
+                }
+
+                if (passwordInput === storedPassword) {
+                    isAuthenticated = true;
+                    passwordModal.style.display = "none";
+                    container.style.display = "block";
+                    errorElement.style.display = "none";
+                    loadSettings();
+                    applySettings();
+                    updateLanguage();
+                    loadNotes();
+                } else {
+                    errorElement.style.display = "block";
+                    errorElement.textContent = translations[currentLanguage].passwordError;
+                    passwordInputElement.value = "";
+                }
+            }
+
+            function showNote(index) {
+                const notes = JSON.parse(localStorage.getItem("notes") || "[]");
+                const note = notes[index];
+                if (!note) return;
+                document.querySelector("#modalTitle").textContent = note.title;
+                document.querySelector("#modalContent").textContent = note.text;
+                document.querySelector("#modalContent").style.color = note.color || "#333333";
+                document.querySelector("#viewModal").style.display = "block";
+            }
+
+            function closeModal() {
+                document.querySelector("#viewModal").style.display = "none";
+            }
+
+            function editNote(index) {
+                const notes = JSON.parse(localStorage.getItem("notes") || "[]");
+                const note = notes[index];
+                if (!note) return;
+                document.querySelector("#noteTitle").value = note.title;
+                document.querySelector("#noteInput").value = note.text;
+                document.querySelector("#noteColor").value = note.color || "#333333";
+                editingIndex = index;
+                document.querySelector("#addNoteText").textContent = translations[currentLanguage].saveChanges;
+            }
+
+            function deleteNote(index) {
+                document.querySelector("#confirmMessage").textContent = translations[currentLanguage].confirmDelete;
+                document.querySelector("#confirmDeleteModal").style.display = "block";
+
+                document.querySelector("#confirmYes").onclick = () => {
+                    const notes = JSON.parse(localStorage.getItem("notes") || "[]");
+                    notes.splice(index, 1);
+                    localStorage.setItem("notes", JSON.stringify(notes));
+                    loadNotes();
+                    document.querySelector("#confirmDeleteModal").style.display = "none";
+                };
+
+                document.querySelector("#confirmNo").onclick = () => {
+                    document.querySelector("#confirmDeleteModal").style.display = "none";
+                };
+            }
+
+            function addNote() {
+                if (!isAuthenticated) return;
+                const noteTitle = document.querySelector("#noteTitle").value.trim();
+                const noteText = document.querySelector("#noteInput").value.trim();
+                const noteColor = document.querySelector("#noteColor").value;
+
+                if (!noteTitle || !noteText) return;
+
+                const notes = JSON.parse(localStorage.getItem("notes") || "[]");
+                const note = { title: noteTitle, text: noteText, color: noteColor };
+
+                if (editingIndex !== null) {
+                    notes[editingIndex] = note;
+                    editingIndex = null;
+                    document.querySelector("#addNoteText").textContent = translations[currentLanguage].addNote;
+                } else {
+                    notes.push(note);
+                }
+
+                localStorage.setItem("notes", JSON.stringify(notes));
+                document.querySelector("#noteTitle").value = "";
+                document.querySelector("#noteInput").value = "";
+                document.querySelector("#noteColor").value = "#333333";
+                loadNotes();
+            }
+
+            function loadNotes() {
+                if (!isAuthenticated) return;
+                const notes = JSON.parse(localStorage.getItem("notes") || "[]");
+                const notesContainer = document.querySelector("#notesContainer");
+                const searchQuery = document.querySelector("#searchInput").value.toLowerCase();
+                notesContainer.innerHTML = "";
+
+                const filteredNotes = notes.filter(note =>
+                    note.title.toLowerCase().includes(searchQuery) ||
+                    note.text.toLowerCase().includes(searchQuery)
+                );
+
+                filteredNotes.reverse().forEach((note, displayIndex) => {
+                    const originalIndex = notes.length - 1 - filteredNotes.indexOf(note);
+                    const isLatest = displayIndex === 0;
+                    const displayTitle = isLatest ? note.title : note.title.substring(0, 20) + "...";
+                    const noteElement = document.createElement("div");
+                    noteElement.className = "note";
+                    noteElement.innerHTML = `
+                        <div class="note-title" style="color: ${note.color || '#333333'}">
+                            <strong>${displayTitle}</strong>
+                            ${isLatest ? `<p style="color: ${note.color || '#333333'}">${note.text}</p>` : ""}
+                        </div>
+                        <div>
+                            <button class="btn-view icon-btn" data-index="${originalIndex}">
+                                <i class="fas fa-eye"></i> ${translations[currentLanguage].view}
+                            </button>
+                            <button class="btn-edit icon-btn" data-index="${originalIndex}">
+                                <i class="fas fa-edit"></i> ${translations[currentLanguage].edit}
+                            </button>
+                            <button class="btn-delete icon-btn" data-index="${originalIndex}">
+                                <i class="fas fa-trash"></i> ${translations[currentLanguage].delete}
+                            </button>
+                        </div>
+                    `;
+                    notesContainer.appendChild(noteElement);
+                });
+
+                document.querySelectorAll(".btn-view").forEach(btn =>
+                    btn.addEventListener("click", () => showNote(parseInt(btn.dataset.index)))
+                );
+                document.querySelectorAll(".btn-edit").forEach(btn =>
+                    btn.addEventListener("click", () => editNote(parseInt(btn.dataset.index)))
+                );
+                document.querySelectorAll(".btn-delete").forEach(btn =>
+                    btn.addEventListener("click", () => deleteNote(parseInt(btn.dataset.index)))
+                );
+            }
+
+            function changePassword() {
+                document.querySelector("#changePasswordModal").style.display = "block";
+            }
+
+            function submitNewPassword() {
+                const newPassword = document.querySelector("#newPasswordInput").value;
+                const confirmPassword = document.querySelector("#confirmNewPasswordInput").value;
+                const errorElement = document.querySelector("#changePasswordError");
+
+                if (newPassword === confirmPassword && newPassword.trim()) {
+                    localStorage.setItem("password", newPassword);
+                    storedPassword = newPassword;
+                    document.querySelector("#changePasswordModal").style.display = "none";
+                    document.querySelector("#newPasswordInput").value = "";
+                    document.querySelector("#confirmNewPasswordInput").value = "";
+                    errorElement.style.display = "none";
+                } else {
+                    errorElement.style.display = "block";
+                    errorElement.textContent = translations[currentLanguage].changePasswordError;
+                }
+            }
+
+            window.onclick = event => {
+                const modals = ["viewModal", "confirmDeleteModal", "changePasswordModal"];
+                modals.forEach(id => {
+                    const modal = document.querySelector(`#${id}`);
+                    if (event.target === modal) {
+                        modal.style.display = "none";
+                        if (id === "changePasswordModal") {
+                            document.querySelector("#newPasswordInput").value = "";
+                            document.querySelector("#confirmNewPasswordInput").value = "";
+                            document.querySelector("#changePasswordError").style.display = "none";
+                        }
+                    }
+                });
+            };
+
+            function applySettings() {
+                if (!isAuthenticated) return;
+                const textColor = document.querySelector("#textColor").value;
+                const bgColor = document.querySelector("#bgColor").value;
+                const font = document.querySelector("#fontSelector").value;
+                const isDarkMode = document.querySelector("#darkModeToggle").checked;
+
+                document.body.style.color = isDarkMode ? "#e0e0e0" : textColor;
+                document.body.style.backgroundColor = isDarkMode ? "#1a1a1a" : bgColor;
+                document.body.style.fontFamily = font;
+                document.querySelector(".container").style.color = isDarkMode ? "#e0e0e0" : textColor;
+                document.body.classList.toggle("dark-mode", isDarkMode);
+
+                localStorage.setItem("textColor", textColor);
+                localStorage.setItem("bgColor", bgColor);
+                localStorage.setItem("font", font);
+                localStorage.setItem("darkMode", isDarkMode);
+            }
+
+            function loadSettings() {
+                if (!isAuthenticated) return;
+                const textColor = localStorage.getItem("textColor") || "#333333";
+                const bgColor = localStorage.getItem("bgColor") || "#f0f2f5";
+                const font = localStorage.getItem("font") || "Arial";
+                const isDarkMode = localStorage.getItem("darkMode") === "true";
+
+                document.querySelector("#textColor").value = textColor;
+                document.querySelector("#bgColor").value = bgColor;
+                document.querySelector("#fontSelector").value = font;
+                document.querySelector("#darkModeToggle").checked = isDarkMode;
+
+                applySettings();
+            }
+
+            function updateLanguage() {
+                const lang = translations[currentLanguage];
+                document.querySelector("#title").textContent = lang.title;
+                document.querySelector("#createdBy").textContent = lang.createdBy;
+                document.querySelector("#textColorLabel").textContent = lang.textColor;
+                document.querySelector("#bgColorLabel").textContent = lang.bgColor;
+                document.querySelector("#fontLabel").textContent = lang.font;
+                document.querySelector("#darkModeLabel").textContent = lang.darkMode;
+                document.querySelector("#languageLabel").textContent = lang.language;
+                document.querySelector("#noteColorLabel").textContent = lang.noteColor;
+                document.querySelector("#noteTitle").placeholder = lang.noteTitlePlaceholder;
+                document.querySelector("#noteInput").placeholder = lang.noteTextPlaceholder;
+                document.querySelector("#searchInput").placeholder = lang.searchPlaceholder;
+                document.querySelector("#addNoteText").textContent = editingIndex === null ? lang.addNote : lang.saveChanges;
+                document.querySelector("#closeModalText").textContent = lang.close;
+                document.querySelector("#confirmYesText").textContent = lang.yes;
+                document.querySelector("#confirmNoText").textContent = lang.no;
+                document.querySelector("#passwordModalTitle").textContent = lang.passwordModalTitle;
+                document.querySelector("#passwordInput").placeholder = lang.passwordPlaceholder;
+                document.querySelector("#submitPasswordText").textContent = lang.submitPassword;
+                document.querySelector("#defaultPasswordText").textContent = lang.defaultPasswordText;
+                document.querySelector("#changePasswordLabel").textContent = lang.changePasswordLabel;
+                document.querySelector("#changePasswordText").textContent = lang.changePasswordButton;
+                document.querySelector("#changePasswordModalTitle").textContent = lang.changePasswordModalTitle;
+                document.querySelector("#newPasswordInput").placeholder = lang.newPasswordPlaceholder;
+                document.querySelector("#confirmNewPasswordInput").placeholder = lang.confirmNewPasswordPlaceholder;
+                document.querySelector("#submitNewPasswordText").textContent = lang.submitNewPassword;
+                document.querySelector("#cancelChangePasswordText").textContent = lang.cancelChangePassword;
+
+                document.body.style.direction = lang.direction;
+                document.body.style.textAlign = lang.textAlign;
+                document.querySelector(".container").style.direction = lang.direction;
+                document.querySelector(".container").style.textAlign = lang.textAlign;
+
+                loadNotes();
+            }
+
+            document.querySelector("#submitPassword").addEventListener("click", checkPassword);
+            document.querySelector("#passwordInput").addEventListener("keypress", event => {
+                if (event.key === "Enter") checkPassword();
+            });
+            document.querySelector("#defaultPasswordText").addEventListener("click", () => {
+                document.querySelector("#passwordInput").value = defaultPassword;
+                checkPassword();
+            });
+
+            document.querySelector("#changePasswordButton").addEventListener("click", changePassword);
+            document.querySelector("#submitNewPassword").addEventListener("click", submitNewPassword);
+            document.querySelector("#cancelChangePassword").addEventListener("click", () => {
+                document.querySelector("#changePasswordModal").style.display = "none";
+                document.querySelector("#newPasswordInput").value = "";
+                document.querySelector("#confirmNewPasswordInput").value = "";
+                document.querySelector("#changePasswordError").style.display = "none";
+            });
+
+            document.querySelector("#searchInput").addEventListener("input", loadNotes);
+            document.querySelector("#textColor").addEventListener("change", applySettings);
+            document.querySelector("#bgColor").addEventListener("change", applySettings);
+            document.querySelector("#fontSelector").addEventListener("change", applySettings);
+            document.querySelector("#darkModeToggle").addEventListener("change", applySettings);
+            document.querySelector("#languageSelector").addEventListener("change", () => {
+                currentLanguage = document.querySelector("#languageSelector").value;
+                localStorage.setItem("language", currentLanguage);
+                updateLanguage();
+            });
+            document.querySelector("#addNoteButton").addEventListener("click", addNote);
+            document.querySelector("#closeModalButton").addEventListener("click", closeModal);
+
+            const link = document.createElement("link");
+            link.href = "https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap";
+            link.rel = "stylesheet";
+            document.head.appendChild(link);
+
+            updateLanguage();
+        });
+    </script>
+</body>
+</html>

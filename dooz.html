@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی دوز - نسخه پیشرفته</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #222;
+            color: white;
+        }
+        h1 {
+            color: #ffcc00;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .cell {
+            background: #333;
+            border: 2px solid #ffcc00;
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s;
+            color: white;
+        }
+        .cell:hover {
+            background-color: #555;
+        }
+        .status {
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+        .reset {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .reset:hover {
+            background-color: #e64a19;
+        }
+        .mode-select {
+            margin-top: 20px;
+        }
+        .difficulty-select {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>بازی دوز - نسخه پیشرفته</h1>
+    <div class="mode-select">
+        <label for="mode">انتخاب حالت بازی:</label>
+        <select id="mode">
+            <option value="player">دو‌نفره</option>
+            <option value="computer">بازی با کامپیوتر</option>
+        </select>
+    </div>
+    <div class="difficulty-select">
+        <label for="difficulty">سطح دشواری:</label>
+        <select id="difficulty">
+            <option value="easy">آسان</option>
+            <option value="medium">متوسط</option>
+            <option value="hard">سخت</option>
+        </select>
+    </div>
+    <div class="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+    <p class="status">نوبت: X</p>
+    <button class="reset">شروع مجدد</button>
+
+    <script>
+        let board = ["", "", "", "", "", "", "", "", ""];
+        let currentPlayer = "X";
+        let gameActive = true;
+        const cells = document.querySelectorAll(".cell");
+        const statusText = document.querySelector(".status");
+        const resetButton = document.querySelector(".reset");
+        const modeSelect = document.getElementById("mode");
+        const difficultySelect = document.getElementById("difficulty");
+        let mode = "player";
+        let difficulty = "medium";
+
+        modeSelect.addEventListener("change", () => {
+            mode = modeSelect.value;
+            resetGame();
+        });
+
+        difficultySelect.addEventListener("change", () => {
+            difficulty = difficultySelect.value;
+            resetGame();
+        });
+
+        function checkWinner() {
+            const winningCombinations = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], 
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], 
+                [0, 4, 8], [2, 4, 6]
+            ];
+            return winningCombinations.some(combination => 
+                board[combination[0]] !== "" &&
+                board[combination[0]] === board[combination[1]] &&
+                board[combination[0]] === board[combination[2]]
+            );
+        }
+
+        function getWinningMove(player) {
+            const winningCombinations = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], 
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], 
+                [0, 4, 8], [2, 4, 6]
+            ];
+            
+            for (let combo of winningCombinations) {
+                let [a, b, c] = combo;
+                // اگر دو خانه پر شده باشند و یکی خالی باشد
+                if (board[a] === player && board[b] === player && board[c] === "") return c;
+                if (board[a] === player && board[c] === player && board[b] === "") return b;
+                if (board[b] === player && board[c] === player && board[a] === "") return a;
+            }
+            return -1;
+        }
+
+        function computerMove() {
+            if (!gameActive) return;
+            
+            // تاخیر برای طبیعی‌تر شدن بازی
+            setTimeout(() => {
+                let move = -1;
+                
+                // در سطح سخت، کامپیوتر از استراتژی بهینه استفاده می‌کند
+                if (difficulty === "hard" || difficulty === "medium") {
+                    // 1. بررسی آیا کامپیوتر می‌تواند برنده شود
+                    move = getWinningMove("O");
+                    
+                    // 2. اگر نه، بررسی آیا باید حرکت بازیکن را مسدود کند
+                    if (move === -1) {
+                        move = getWinningMove("X");
+                    }
+                    
+                    // 3. اگر مرکز خالی است، آن را انتخاب کن
+                    if (move === -1 && board[4] === "") {
+                        move = 4;
+                    }
+                    
+                    // 4. انتخاب یکی از گوشه‌ها
+                    if (move === -1) {
+                        const corners = [0, 2, 6, 8];
+                        const emptyCorners = corners.filter(index => board[index] === "");
+                        if (emptyCorners.length > 0) {
+                            move = emptyCorners[Math.floor(Math.random() * emptyCorners.length)];
+                        }
+                    }
+                }
+                
+                // 5. اگر هیچکدام از موارد بالا نبود، یک حرکت تصادفی انجام بده
+                if (move === -1 || difficulty === "easy") {
+                    let emptyCells = board.map((val, index) => val === "" ? index : null).filter(val => val !== null);
+                    if (emptyCells.length > 0) {
+                        move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    }
+                }
+                
+                if (move !== -1) {
+                    board[move] = "O";
+                    cells[move].textContent = "O";
+                    cells[move].style.backgroundColor = "#ff5722";
+                    
+                    if (checkWinner()) {
+                        statusText.textContent = `🎉 برنده: کامپیوتر! 🎉`;
+                        gameActive = false;
+                        return;
+                    }
+                    
+                    if (!board.includes("")) {
+                        statusText.textContent = "🔴 بازی مساوی شد!";
+                        gameActive = false;
+                        return;
+                    }
+                    
+                    currentPlayer = "X";
+                    statusText.textContent = `نوبت: X`;
+                }
+            }, 500);
+        }
+
+        cells.forEach(cell => {
+            cell.addEventListener("click", () => {
+                const index = cell.getAttribute("data-index");
+
+                if (board[index] === "" && gameActive) {
+                    board[index] = currentPlayer;
+                    cell.textContent = currentPlayer;
+                    cell.style.backgroundColor = currentPlayer === "X" ? "#ffcc00" : "#ff5722";
+
+                    if (checkWinner()) {
+                        statusText.textContent = `🎉 برنده: ${currentPlayer}! 🎉`;
+                        gameActive = false;
+                        return;
+                    }
+
+                    if (!board.includes("")) {
+                        statusText.textContent = "🔴 بازی مساوی شد!";
+                        gameActive = false;
+                        return;
+                    }
+
+                    currentPlayer = currentPlayer === "X" ? "O" : "X";
+                    statusText.textContent = `نوبت: ${currentPlayer}`;
+
+                    if (mode === "computer" && currentPlayer === "O") {
+                        computerMove();
+                    }
+                }
+            });
+        });
+
+        function resetGame() {
+            board.fill("");
+            cells.forEach(cell => {
+                cell.textContent = "";
+                cell.style.backgroundColor = "#333";
+            });
+            currentPlayer = "X";
+            statusText.textContent = `نوبت: X`;
+            gameActive = true;
+        }
+
+        resetButton.addEventListener("click", resetGame);
+    </script>
+</body>
+</html>

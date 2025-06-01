@@ -1,0 +1,372 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پیانو ۳ اکتاو | Professional Piano</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            margin: 0;
+            padding: 20px;
+            color: white;
+            overflow-x: auto;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        
+        .piano-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            margin-top: 20px;
+        }
+        
+        .piano {
+            display: flex;
+            position: relative;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 0 0 10px 10px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            overflow-x: auto;
+            width: 100%;
+        }
+        
+        .key {
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.1s;
+        }
+        
+        .white {
+            width: 50px;
+            height: 250px;
+            background: linear-gradient(to bottom, #fff 0%, #f9f9f9 100%);
+            border: 1px solid #ddd;
+            border-radius: 0 0 8px 8px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 15px;
+            font-weight: bold;
+            color: #333;
+            z-index: 1;
+            margin: 0 1px;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.2);
+        }
+        
+        .white.active {
+            background: linear-gradient(to bottom, #e0e0e0 0%, #ccc 100%);
+            transform: translateY(3px);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+        
+        .black {
+            width: 32px;
+            height: 150px;
+            background: linear-gradient(to bottom, #333 0%, #000 100%);
+            position: absolute;
+            margin-left: -16px;
+            z-index: 2;
+            border-radius: 0 0 6px 6px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 10px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+        }
+        
+        .black.active {
+            background: linear-gradient(to bottom, #000 0%, #222 100%);
+            transform: translateY(3px);
+            box-shadow: inset 0 0 8px rgba(255,255,255,0.1);
+        }
+        
+        .keyboard-hint {
+            margin-top: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 20px;
+            background: #4a00e0;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            background: #8e2de2;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        select {
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: none;
+            background: white;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 768px) {
+            .white {
+                width: 30px;
+                height: 180px;
+                font-size: 10px;
+            }
+            .black {
+                width: 22px;
+                height: 100px;
+                margin-left: -11px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🎼 پیانو حرفه‌ای ۳ اکتاو</h1>
+    
+    <div class="piano-container">
+        <div class="controls">
+            <select id="instrument">
+                <option value="sine">صدای سینوسی</option>
+                <option value="square">صدای مربعی</option>
+                <option value="sawtooth">صدای اره‌ای</option>
+                <option value="triangle">صدای مثلثی</option>
+            </select>
+            
+            <select id="sustain">
+                <option value="0.5">حالت عادی (0.5s)</option>
+                <option value="1">ساستین متوسط (1s)</option>
+                <option value="2">ساستین طولانی (2s)</option>
+                <option value="0">بدون ساستین</option>
+            </select>
+        </div>
+        
+        <div class="piano" id="pianoKeys">
+            <!-- کلیدها با جاوااسکریپت ساخته می‌شوند -->
+        </div>
+        
+        <div class="keyboard-hint">
+            برای نواختن از کیبورد استفاده کنید: 
+            <br>
+            اکتاو اول (A,S,D,...) | اکتاو دوم (Q,W,E,...) | اکتاو سوم (1,2,3,...)
+        </div>
+    </div>
+
+    <script>
+        // تنظیمات پیشرفته
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let activeOscillators = {};
+        let currentInstrument = 'sine';
+        let sustainTime = 0.5;
+        
+        // نت‌های پیانو برای ۳ اکتاو
+        const notes = [
+            // اکتاو 1 (پایین)
+            { note: 'C1', freq: 130.81, key: 'a', type: 'white' },
+            { note: 'C#1', freq: 138.59, key: 'w', type: 'black' },
+            { note: 'D1', freq: 146.83, key: 's', type: 'white' },
+            { note: 'D#1', freq: 155.56, key: 'e', type: 'black' },
+            { note: 'E1', freq: 164.81, key: 'd', type: 'white' },
+            { note: 'F1', freq: 174.61, key: 'f', type: 'white' },
+            { note: 'F#1', freq: 185.00, key: 't', type: 'black' },
+            { note: 'G1', freq: 196.00, key: 'g', type: 'white' },
+            { note: 'G#1', freq: 207.65, key: 'y', type: 'black' },
+            { note: 'A1', freq: 220.00, key: 'h', type: 'white' },
+            { note: 'A#1', freq: 233.08, key: 'u', type: 'black' },
+            { note: 'B1', freq: 246.94, key: 'j', type: 'white' },
+            
+            // اکتاو 2 (میانی)
+            { note: 'C2', freq: 261.63, key: 'q', type: 'white' },
+            { note: 'C#2', freq: 277.18, key: '2', type: 'black' },
+            { note: 'D2', freq: 293.66, key: 'w', type: 'white' },
+            { note: 'D#2', freq: 311.13, key: '3', type: 'black' },
+            { note: 'E2', freq: 329.63, key: 'e', type: 'white' },
+            { note: 'F2', freq: 349.23, key: 'r', type: 'white' },
+            { note: 'F#2', freq: 369.99, key: '5', type: 'black' },
+            { note: 'G2', freq: 392.00, key: 't', type: 'white' },
+            { note: 'G#2', freq: 415.30, key: '6', type: 'black' },
+            { note: 'A2', freq: 440.00, key: 'y', type: 'white' },
+            { note: 'A#2', freq: 466.16, key: '7', type: 'black' },
+            { note: 'B2', freq: 493.88, key: 'u', type: 'white' },
+            
+            // اکتاو 3 (بالا)
+            { note: 'C3', freq: 523.25, key: 'z', type: 'white' },
+            { note: 'C#3', freq: 554.37, key: 's', type: 'black' },
+            { note: 'D3', freq: 587.33, key: 'x', type: 'white' },
+            { note: 'D#3', freq: 622.25, key: 'd', type: 'black' },
+            { note: 'E3', freq: 659.25, key: 'c', type: 'white' },
+            { note: 'F3', freq: 698.46, key: 'v', type: 'white' },
+            { note: 'F#3', freq: 739.99, key: 'g', type: 'black' },
+            { note: 'G3', freq: 783.99, key: 'b', type: 'white' },
+            { note: 'G#3', freq: 830.61, key: 'h', type: 'black' },
+            { note: 'A3', freq: 880.00, key: 'n', type: 'white' },
+            { note: 'A#3', freq: 932.33, key: 'j', type: 'black' },
+            { note: 'B3', freq: 987.77, key: 'm', type: 'white' }
+        ];
+        
+        // ایجاد کلیدهای پیانو
+        const pianoKeys = document.getElementById('pianoKeys');
+        let blackKeyCount = 0;
+        
+        notes.forEach((noteObj, index) => {
+            const key = document.createElement('div');
+            key.className = `key ${noteObj.type}`;
+            key.setAttribute('data-note', noteObj.note);
+            key.setAttribute('data-freq', noteObj.freq);
+            key.setAttribute('data-key', noteObj.key);
+            key.textContent = noteObj.note;
+            
+            if (noteObj.type === 'black') {
+                key.style.left = `${(index - blackKeyCount) * 51 + 35}px`;
+                blackKeyCount++;
+            } else {
+                key.style.position = 'relative';
+            }
+            
+            pianoKeys.appendChild(key);
+        });
+        
+        // پخش نت
+        function playNote(noteElement) {
+            const note = noteElement.getAttribute('data-note');
+            const freq = parseFloat(noteElement.getAttribute('data-freq'));
+            
+            if (activeOscillators[note]) return; // جلوگیری از پخش مجدد همان نت
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.type = currentInstrument;
+            oscillator.frequency.value = freq;
+            
+            gainNode.gain.value = 0.3;
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.start();
+            
+            activeOscillators[note] = { oscillator, gainNode };
+            noteElement.classList.add('active');
+            
+            // اگر ساستین غیرفعال است، بعد از مدت مشخص قطع شود
+            if (sustainTime > 0) {
+                setTimeout(() => {
+                    stopNote(noteElement);
+                }, sustainTime * 1000);
+            }
+        }
+        
+        // توقف نت
+        function stopNote(noteElement) {
+            const note = noteElement.getAttribute('data-note');
+            
+            if (activeOscillators[note]) {
+                activeOscillators[note].gainNode.gain.exponentialRampToValueAtTime(
+                    0.001,
+                    audioContext.currentTime + 0.03
+                );
+                
+                setTimeout(() => {
+                    activeOscillators[note].oscillator.stop();
+                    delete activeOscillators[note];
+                }, 30);
+                
+                noteElement.classList.remove('active');
+            }
+        }
+        
+        // رویدادهای موس/لمس
+        document.querySelectorAll('.key').forEach(key => {
+            key.addEventListener('mousedown', () => {
+                playNote(key);
+            });
+            
+            key.addEventListener('mouseup', () => {
+                if (sustainTime === 0) {
+                    stopNote(key);
+                }
+            });
+            
+            key.addEventListener('mouseleave', () => {
+                if (sustainTime === 0 && key.classList.contains('active')) {
+                    stopNote(key);
+                }
+            });
+            
+            // برای صفحات لمسی
+            key.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                playNote(key);
+            });
+            
+            key.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (sustainTime === 0) {
+                    stopNote(key);
+                }
+            });
+        });
+        
+        // رویدادهای کیبورد
+        document.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            
+            const keyElement = document.querySelector(`[data-key="${e.key.toLowerCase()}"]`);
+            if (keyElement) {
+                playNote(keyElement);
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            const keyElement = document.querySelector(`[data-key="${e.key.toLowerCase()}"]`);
+            if (keyElement && sustainTime === 0) {
+                stopNote(keyElement);
+            }
+        });
+        
+        // کنترل‌ها
+        document.getElementById('instrument').addEventListener('change', (e) => {
+            currentInstrument = e.target.value;
+        });
+        
+        document.getElementById('sustain').addEventListener('change', (e) => {
+            sustainTime = parseFloat(e.target.value);
+        });
+    </script>
+</body>
+</html>
