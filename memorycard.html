@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی تست حافظه مرحله‌ای</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+        }
+        
+        .game-info {
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        
+        .game-board {
+            display: grid;
+            gap: 10px;
+            margin: 0 auto;
+            justify-content: center;
+        }
+        
+        .card {
+            height: 80px;
+            width: 80px;
+            background-color: #3498db;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s, background-color 0.3s;
+        }
+        
+        .card:hover {
+            transform: scale(1.05);
+        }
+        
+        .card.flipped {
+            background-color: #2ecc71;
+            transform: rotateY(180deg);
+        }
+        
+        .card.matched {
+            background-color: #e74c3c;
+            cursor: default;
+        }
+        
+        button {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        button:hover {
+            background-color: #1a252f;
+        }
+        
+        .trophy {
+            font-size: 100px;
+            margin: 30px 0;
+            display: none;
+        }
+        
+        .level-info {
+            font-size: 20px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            max-width: 500px;
+            height: 20px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background-color: #2ecc71;
+            width: 0%;
+            transition: width 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <h1>بازی تست حافظه مرحله‌ای</h1>
+    <div class="level-info" id="levelInfo">مرحله 1 از 3</div>
+    <div class="progress-bar">
+        <div class="progress" id="progressBar"></div>
+    </div>
+    <div class="game-info">
+        <span id="moves">حرکات: 0</span> | 
+        <span id="timer">زمان: 0 ثانیه</span> | 
+        <span id="score">امتیاز: 0</span>
+    </div>
+    <div class="game-board" id="gameBoard"></div>
+    <button id="restartButton" style="display: none;">شروع مجدد</button>
+    <div class="trophy" id="trophy">🏆</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameBoard = document.getElementById('gameBoard');
+            const movesDisplay = document.getElementById('moves');
+            const timerDisplay = document.getElementById('timer');
+            const scoreDisplay = document.getElementById('score');
+            const restartButton = document.getElementById('restartButton');
+            const trophy = document.getElementById('trophy');
+            const levelInfo = document.getElementById('levelInfo');
+            const progressBar = document.getElementById('progressBar');
+            
+            // تنظیمات مراحل
+            const levels = [
+                { rows: 4, cols: 4 },  // مرحله 1: 4x4 (16 کارت)
+                { rows: 4, cols: 6 },  // مرحله 2: 4x6 (24 کارت)
+                { rows: 6, cols: 6 }   // مرحله 3: 6x6 (36 کارت)
+            ];
+            
+            const emojiSets = [
+                ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'],
+                ['🍎', '🍌', '🍒', '🍓', '🍊', '🍋', '🍉', '🍇', '🍍', '🥝', '🍑', '🍈'],
+                ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪀', '🥊', '🛹', '🛼']
+            ];
+            
+            let currentLevel = 0;
+            let cards = [];
+            let flippedCards = [];
+            let matchedCards = [];
+            let moves = 0;
+            let timer = 0;
+            let score = 0;
+            let timerInterval;
+            let gameStarted = false;
+            
+            // تابع شروع بازی
+            function startGame() {
+                // تنظیمات مرحله فعلی
+                const level = levels[currentLevel];
+                const emojis = emojiSets[currentLevel];
+                
+                // ایجاد کارت‌ها برای مرحله فعلی
+                cards = [];
+                const pairsNeeded = (level.rows * level.cols) / 2;
+                for (let i = 0; i < pairsNeeded; i++) {
+                    cards.push(emojis[i % emojis.length]);
+                    cards.push(emojis[i % emojis.length]);
+                }
+                
+                // مخلوط کردن کارت‌ها
+                shuffleCards();
+                
+                // تنظیم اندازه صفحه بازی
+                gameBoard.style.gridTemplateColumns = `repeat(${level.cols}, 80px)`;
+                
+                // ایجاد کارت‌ها در صفحه
+                createCards();
+                
+                // ریست کردن متغیرهای بازی
+                flippedCards = [];
+                matchedCards = [];
+                moves = 0;
+                timer = 0;
+                gameStarted = false;
+                movesDisplay.textContent = `حرکات: ${moves}`;
+                timerDisplay.textContent = `زمان: ${timer} ثانیه`;
+                levelInfo.textContent = `مرحله ${currentLevel + 1} از 3`;
+                progressBar.style.width = `${(currentLevel / 3) * 100}%`;
+                
+                // پاک کردن تایمر قبلی اگر وجود داشت
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+                
+                // مخفی کردن کاپ و نمایش دکمه شروع مجدد
+                trophy.style.display = 'none';
+                restartButton.style.display = 'none';
+            }
+            
+            // تابع مخلوط کردن کارت‌ها
+            function shuffleCards() {
+                for (let i = cards.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [cards[i], cards[j]] = [cards[j], cards[i]];
+                }
+            }
+            
+            // تابع ایجاد کارت‌ها در صفحه
+            function createCards() {
+                gameBoard.innerHTML = '';
+                
+                cards.forEach((emoji, index) => {
+                    const card = document.createElement('div');
+                    card.classList.add('card');
+                    card.dataset.index = index;
+                    card.dataset.emoji = emoji;
+                    card.textContent = '?';
+                    card.addEventListener('click', flipCard);
+                    gameBoard.appendChild(card);
+                });
+            }
+            
+            // تابع چرخاندن کارت
+            function flipCard() {
+                // اگر بازی شروع نشده، تایمر را شروع کن
+                if (!gameStarted) {
+                    startTimer();
+                    gameStarted = true;
+                }
+                
+                const selectedCard = this;
+                
+                // اگر کارت قبلا چرخانده شده یا جفت شده باشد، کاری نکن
+                if (selectedCard.classList.contains('flipped') || 
+                    selectedCard.classList.contains('matched') || 
+                    flippedCards.length >= 2) {
+                    return;
+                }
+                
+                // چرخاندن کارت
+                selectedCard.classList.add('flipped');
+                selectedCard.textContent = selectedCard.dataset.emoji;
+                flippedCards.push(selectedCard);
+                
+                // اگر دو کارت چرخانده شده باشند، بررسی کن
+                if (flippedCards.length === 2) {
+                    moves++;
+                    movesDisplay.textContent = `حرکات: ${moves}`;
+                    
+                    // بررسی تطابق
+                    if (flippedCards[0].dataset.emoji === flippedCards[1].dataset.emoji) {
+                        // کارت‌ها جفت هستند
+                        flippedCards.forEach(card => {
+                            card.classList.add('matched');
+                            matchedCards.push(card);
+                        });
+                        
+                        // محاسبه امتیاز
+                        score += 10 * (currentLevel + 1);
+                        scoreDisplay.textContent = `امتیاز: ${score}`;
+                        
+                        flippedCards = [];
+                        
+                        // بررسی پایان مرحله
+                        if (matchedCards.length === cards.length) {
+                            endLevel();
+                        }
+                    } else {
+                        // کارت‌ها جفت نیستند، برگرداندن آنها بعد از تاخیر
+                        setTimeout(() => {
+                            flippedCards.forEach(card => {
+                                card.classList.remove('flipped');
+                                card.textContent = '?';
+                            });
+                            flippedCards = [];
+                        }, 1000);
+                    }
+                }
+            }
+            
+            // تابع شروع تایمر
+            function startTimer() {
+                timerInterval = setInterval(() => {
+                    timer++;
+                    timerDisplay.textContent = `زمان: ${timer} ثانیه`;
+                }, 1000);
+            }
+            
+            // تابع پایان مرحله
+            function endLevel() {
+                clearInterval(timerInterval);
+                
+                // افزایش مرحله
+                currentLevel++;
+                progressBar.style.width = `${(currentLevel / 3) * 100}%`;
+                
+                if (currentLevel < levels.length) {
+                    // اگر مراحل باقی مانده، مرحله بعدی را شروع کن
+                    setTimeout(() => {
+                        startGame();
+                    }, 1500);
+                } else {
+                    // اگر همه مراحل تمام شده، پایان بازی
+                    endGame();
+                }
+            }
+            
+            // تابع پایان بازی
+            function endGame() {
+                setTimeout(() => {
+                    // نمایش کاپ قهرمانی
+                    trophy.style.display = 'block';
+                    restartButton.style.display = 'inline-block';
+                    
+                    // محاسبه امتیاز نهایی
+                    const timeBonus = Math.max(0, 500 - (timer * 2));
+                    score += timeBonus;
+                    scoreDisplay.textContent = `امتیاز نهایی: ${score}`;
+                    
+                    alert(`تبریک! شما تمام مراحل را در ${moves} حرکت و ${timer} ثانیه به پایان رساندید!\nامتیاز نهایی شما: ${score}`);
+                }, 1000);
+            }
+            
+            // رویداد کلیک برای دکمه شروع مجدد
+            restartButton.addEventListener('click', () => {
+                currentLevel = 0;
+                score = 0;
+                scoreDisplay.textContent = `امتیاز: ${score}`;
+                startGame();
+            });
+            
+            // شروع بازی برای اولین بار
+            startGame();
+        });
+    </script>
+</body>
+</html>
