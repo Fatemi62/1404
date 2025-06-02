@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>مسابقه ریاضی</title>
+  <style>
+    body {
+      font-family: Tahoma, sans-serif;
+      direction: rtl;
+      text-align: right;
+      background-color: #f0f0f0;
+      padding: 20px;
+    }
+    .question {
+      background-color: #fff;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 10px;
+      box-shadow: 0 0 5px #ccc;
+    }
+    .result {
+      font-size: 20px;
+      font-weight: bold;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🏆 مسابقه ریاضی</h1>
+
+  <form id="quizForm">
+    <!-- سؤال ۱ -->
+    <div class="question">
+      <p>1. حاصل ۷ × ۶ چیست؟</p>
+      <label><input type="radio" name="q1" value="0"> 36</label><br>
+      <label><input type="radio" name="q1" value="1"> 42</label><br>
+      <label><input type="radio" name="q1" value="0"> 48</label><br>
+      <label><input type="radio" name="q1" value="0"> 56</label>
+    </div>
+
+    <!-- سؤال ۲ -->
+    <div class="question">
+      <p>2. اگر ۱۲ سیب داشته باشیم و ۳ نفر بخواهند آن‌ها را تقسیم کنند، هر نفر چند سیب می‌گیرد؟</p>
+      <label><input type="radio" name="q2" value="0"> 3</label><br>
+      <label><input type="radio" name="q2" value="1"> 4</label><br>
+      <label><input type="radio" name="q2" value="0"> 5</label><br>
+      <label><input type="radio" name="q2" value="0"> 6</label>
+    </div>
+
+    <!-- سؤال ۳ -->
+    <div class="question">
+      <p>3. عدد بعد از ۹۹ چیست؟</p>
+      <label><input type="radio" name="q3" value="0"> 98</label><br>
+      <label><input type="radio" name="q3" value="0"> 99.5</label><br>
+      <label><input type="radio" name="q3" value="1"> 100</label><br>
+      <label><input type="radio" name="q3" value="0"> 101</label>
+    </div>
+
+    <!-- سؤال ۴ -->
+    <div class="question">
+      <p>4. مجموع ۱۵ و ۲۷ چند می‌شود؟</p>
+      <label><input type="radio" name="q4" value="0"> 32</label><br>
+      <label><input type="radio" name="q4" value="0"> 41</label><br>
+      <label><input type="radio" name="q4" value="1"> 42</label><br>
+      <label><input type="radio" name="q4" value="0"> 43</label>
+    </div>
+
+    <!-- سؤال ۵ -->
+    <div class="question">
+      <p>5. اگر یک مربع هر ضلعش ۵ سانتی‌متر باشد، محیط آن چند سانتی‌متر است؟</p>
+      <label><input type="radio" name="q5" value="1"> 20</label><br>
+      <label><input type="radio" name="q5" value="0"> 25</label><br>
+      <label><input type="radio" name="q5" value="0"> 10</label><br>
+      <label><input type="radio" name="q5" value="0"> 15</label>
+    </div>
+
+    <button type="button" onclick="submitQuiz()">ارسال پاسخ‌ها</button>
+  </form>
+
+  <div id="result" class="result"></div>
+
+  <script>
+    function submitQuiz() {
+      const form = document.getElementById("quizForm");
+      const formData = new FormData(form);
+      let score = 0;
+      for (let [key, value] of formData.entries()) {
+        score += parseInt(value);
+      }
+      document.getElementById("result").innerText = `نمره شما: ${score} از 5`;
+    }
+  </script>
+
+</body>
+</html>

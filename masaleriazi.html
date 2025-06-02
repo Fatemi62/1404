@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>بازی ریاضی - مسئله متنی</title>
+  <style>
+    body {
+      font-family: Tahoma, sans-serif;
+      direction: rtl;
+      text-align: center;
+      margin-top: 50px;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>مسئلهٔ ریاضی</h2>
+  <p id="question">علی ۵ مداد دارد. مادرش ۳ مداد دیگر به او می‌دهد. حالا علی چند مداد دارد؟</p>
+
+  <input type="number" id="answerInput" placeholder="پاسخ خود را وارد کنید">
+  <button onclick="checkAnswer()">بررسی پاسخ</button>
+
+  <p id="result"></p>
+
+  <script>
+    const correctAnswer = 8;
+
+    function checkAnswer() {
+      const userAnswer = parseInt(document.getElementById("answerInput").value);
+      const result = document.getElementById("result");
+
+      if (userAnswer === correctAnswer) {
+        result.textContent = "آفرین! پاسخ درست است 🎉";
+        result.style.color = "green";
+      } else {
+        result.textContent = "پاسخ نادرست است. دوباره تلاش کن.";
+        result.style.color = "red";
+      }
+    }
+  </script>
+
+</body>
+</html>
