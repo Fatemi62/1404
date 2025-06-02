@@ -1,0 +1,551 @@
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ماجراجویی دایناسوری با ایموجی</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f7e6;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #8b4513;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .game-area {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background-color: #c8e6c9;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            border: 3px solid #8b4513;
+        }
+        .emoji {
+            position: absolute;
+            font-size: 40px;
+            user-select: none;
+        }
+        #player {
+            font-size: 60px;
+            bottom: 50px;
+            left: 50px;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background-color: #8b4513;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background-color: #a0522d;
+            transform: scale(1.05);
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background-color: #f5f5dc;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .dino-info {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: right;
+            display: none;
+        }
+        .dino-card {
+            background-color: #fff;
+            border: 2px solid #8b4513;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress {
+            height: 100%;
+            background-color: #8b4513;
+            width: 0%;
+            transition: width 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .pulse {
+            animation: pulse 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🦖 ماجراجویی دایناسوری با ایموجی 🦕</h1>
+        
+        <div class="stats">
+            <div>فسیل‌ها: <span id="fossils">0</span> 💎</div>
+            <div>سطح: <span id="level">1</span> ⬆️</div>
+            <div>سلامتی: <span id="health">100</span>% ❤️</div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <div class="emoji" id="player">🦖</div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="moveDino('up')">↑ بالا (⬆️)</button>
+            <button onclick="moveDino('left')">← چپ (⬅️)</button>
+            <button onclick="moveDino('right')">→ راست (➡️)</button>
+            <button onclick="moveDino('down')">↓ پایین (⬇️)</button>
+            <button onclick="startGame()">شروع بازی (🎮)</button>
+        </div>
+        
+        <div class="dino-info" id="dinoInfo">
+            <h3>📚 اطلاعات دایناسور</h3>
+            <div id="infoContent"></div>
+            <button onclick="hideInfo()">بستن (❌)</button>
+        </div>
+    </div>
+
+    <script>
+        // متغیرهای بازی
+        let player = document.getElementById('player');
+        let gameArea = document.getElementById('gameArea');
+        let fossilsCollected = 0;
+        let health = 100;
+        let level = 1;
+        let gameInterval;
+        let fossils = [];
+        let predators = [];
+        let gameActive = false;
+        
+        // ایموجی‌های مختلف برای عناصر بازی
+        const emojis = {
+            player: "🦖",
+            fossils: ["💎", "🦴", "🔶", "🪨", "⭐"],
+            predators: ["👹", "🐉", "🐊", "🦈", "👾"],
+            foods: ["🍎", "🍗", "🌿", "🍖", "🥦"]
+        };
+        
+        // اطلاعات دایناسورها
+        const dinoData = [
+            {
+                name: "تیرانوسوروس رکس",
+                emoji: "🦖",
+                period: "پایان کرتاسه",
+                diet: "گوشتخوار",
+                size: "۱۲ متر",
+                fact: "قوی‌ترین گازگیر در میان تمام حیوانات خشکی!"
+            },
+            {
+                name: "تریسراتوپس",
+                emoji: "🦕",
+                period: "اواخر کرتاسه",
+                diet: "گیاهخوار",
+                size: "۹ متر",
+                fact: "دارای سه شاخ و یک صفحه استخوانی بزرگ در پشت سر"
+            },
+            {
+                name: "ولوسیراپتور",
+                emoji: "🐾",
+                period: "اواخر کرتاسه",
+                diet: "گوشتخوار",
+                size: "۲ متر",
+                fact: "باهوش‌ترین دایناسور با پنجه‌های داس شکل"
+            },
+            {
+                name: "استگوسوروس",
+                emoji: "🦔",
+                period: "ژوراسیک",
+                diet: "گیاهخوار",
+                size: "۹ متر",
+                fact: "دارای صفحه‌های استخوانی روی کمر و دم خاردار"
+            },
+            {
+                name: "براکیوسوروس",
+                emoji: "🦒",
+                period: "ژوراسیک",
+                diet: "گیاهخوار",
+                size: "۲۶ متر",
+                fact: "یکی از بزرگترین دایناسورها با گردن بسیار بلند"
+            }
+        ];
+        
+        // شروع بازی
+        function startGame() {
+            if (gameActive) return;
+            
+            gameActive = true;
+            fossilsCollected = 0;
+            health = 100;
+            level = 1;
+            
+            updateStats();
+            clearGameArea();
+            
+            // ایجاد فسیل‌ها
+            createFossils();
+            
+            // ایجاد شکارچیان
+            createPredators();
+            
+            // ایجاد غذاها
+            createFoods();
+            
+            // شروع گیم پلی
+            gameInterval = setInterval(gameLoop, 100);
+            
+            // کنترل با کیبورد
+            document.addEventListener('keydown', handleKeyPress);
+        }
+        
+        // حلقه اصلی بازی
+        function gameLoop() {
+            movePredators();
+            checkCollisions();
+            updateProgress();
+            
+            // افزایش سطح
+            if (fossilsCollected >= level * 5) {
+                levelUp();
+            }
+            
+            // پایان بازی
+            if (health <= 0) {
+                endGame();
+            }
+        }
+        
+        // ایجاد فسیل‌ها
+        function createFossils() {
+            for (let i = 0; i < 5 + level * 2; i++) {
+                let fossil = document.createElement('div');
+                fossil.className = 'emoji';
+                fossil.innerHTML = emojis.fossils[Math.floor(Math.random() * emojis.fossils.length)];
+                
+                // موقعیت تصادفی
+                const x = Math.random() * (gameArea.offsetWidth - 40);
+                const y = Math.random() * (gameArea.offsetHeight - 40);
+                
+                fossil.style.left = x + 'px';
+                fossil.style.top = y + 'px';
+                
+                gameArea.appendChild(fossil);
+                fossils.push(fossil);
+            }
+        }
+        
+        // ایجاد شکارچیان
+        function createPredators() {
+            for (let i = 0; i < level; i++) {
+                let predator = document.createElement('div');
+                predator.className = 'emoji';
+                predator.innerHTML = emojis.predators[Math.floor(Math.random() * emojis.predators.length)];
+                
+                // موقعیت تصادفی
+                const x = Math.random() * (gameArea.offsetWidth - 40);
+                const y = Math.random() * (gameArea.offsetHeight - 40);
+                
+                predator.style.left = x + 'px';
+                predator.style.top = y + 'px';
+                
+                gameArea.appendChild(predator);
+                predators.push({
+                    element: predator,
+                    x: x,
+                    y: y,
+                    speedX: (Math.random() - 0.5) * (3 + level),
+                    speedY: (Math.random() - 0.5) * (3 + level)
+                });
+            }
+        }
+        
+        // ایجاد غذاها
+        function createFoods() {
+            for (let i = 0; i < 3; i++) {
+                let food = document.createElement('div');
+                food.className = 'emoji';
+                food.innerHTML = emojis.foods[Math.floor(Math.random() * emojis.foods.length)];
+                
+                // موقعیت تصادفی
+                const x = Math.random() * (gameArea.offsetWidth - 40);
+                const y = Math.random() * (gameArea.offsetHeight - 40);
+                
+                food.style.left = x + 'px';
+                food.style.top = y + 'px';
+                food.id = 'food-' + i;
+                
+                gameArea.appendChild(food);
+            }
+        }
+        
+        // حرکت شکارچیان
+        function movePredators() {
+            predators.forEach(predator => {
+                // تغییر جهت در صورت برخورد به دیوار
+                if (predator.x <= 0 || predator.x >= gameArea.offsetWidth - 40) {
+                    predator.speedX *= -1;
+                }
+                if (predator.y <= 0 || predator.y >= gameArea.offsetHeight - 40) {
+                    predator.speedY *= -1;
+                }
+                
+                // به‌روزرسانی موقعیت
+                predator.x += predator.speedX;
+                predator.y += predator.speedY;
+                
+                predator.element.style.left = predator.x + 'px';
+                predator.element.style.top = predator.y + 'px';
+            });
+        }
+        
+        // بررسی برخوردها
+        function checkCollisions() {
+            const playerRect = player.getBoundingClientRect();
+            
+            // بررسی برخورد با فسیل‌ها
+            fossils.forEach((fossil, index) => {
+                const fossilRect = fossil.getBoundingClientRect();
+                
+                if (isColliding(playerRect, fossilRect)) {
+                    // جمع‌آوری فسیل
+                    gameArea.removeChild(fossil);
+                    fossils.splice(index, 1);
+                    fossilsCollected++;
+                    
+                    // افکت جمع‌آوری
+                    player.classList.add('pulse');
+                    setTimeout(() => player.classList.remove('pulse'), 500);
+                    
+                    // نمایش اطلاعات دایناسور
+                    showDinoInfo();
+                    
+                    updateStats();
+                    
+                    // ایجاد فسیل جدید
+                    if (fossils.length < 3) {
+                        createFossils();
+                    }
+                }
+            });
+            
+            // بررسی برخورد با شکارچیان
+            predators.forEach(predator => {
+                const predatorRect = predator.element.getBoundingClientRect();
+                
+                if (isColliding(playerRect, predatorRect)) {
+                    health -= 10;
+                    player.classList.add('shake');
+                    setTimeout(() => player.classList.remove('shake'), 500);
+                    updateStats();
+                }
+            });
+            
+            // بررسی برخورد با غذاها
+            document.querySelectorAll('.emoji').forEach(item => {
+                if (item.id && item.id.startsWith('food-')) {
+                    const foodRect = item.getBoundingClientRect();
+                    if (isColliding(playerRect, foodRect)) {
+                        health = Math.min(100, health + 15);
+                        gameArea.removeChild(item);
+                        updateStats();
+                        
+                        // افکت درمان
+                        player.innerHTML = '😋';
+                        setTimeout(() => player.innerHTML = emojis.player, 500);
+                    }
+                }
+            });
+        }
+        
+        // تشخیص برخورد
+        function isColliding(rect1, rect2) {
+            return !(
+                rect1.right < rect2.left || 
+                rect1.left > rect2.right || 
+                rect1.bottom < rect2.top || 
+                rect1.top > rect2.bottom
+            );
+        }
+        
+        // حرکت دایناسور بازیکن
+        function moveDino(direction) {
+            if (!gameActive) return;
+            
+            const speed = 20;
+            const currentLeft = parseInt(player.style.left || 50);
+            const currentTop = parseInt(player.style.top || 50);
+            
+            switch(direction) {
+                case 'up':
+                    player.style.top = Math.max(0, currentTop - speed) + 'px';
+                    break;
+                case 'down':
+                    player.style.top = Math.min(gameArea.offsetHeight - 60, currentTop + speed) + 'px';
+                    break;
+                case 'left':
+                    player.style.left = Math.max(0, currentLeft - speed) + 'px';
+                    break;
+                case 'right':
+                    player.style.left = Math.min(gameArea.offsetWidth - 60, currentLeft + speed) + 'px';
+                    break;
+            }
+        }
+        
+        // کنترل با کیبورد
+        function handleKeyPress(e) {
+            if (!gameActive) return;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                    moveDino('up');
+                    break;
+                case 'ArrowDown':
+                    moveDino('down');
+                    break;
+                case 'ArrowLeft':
+                    moveDino('left');
+                    break;
+                case 'ArrowRight':
+                    moveDino('right');
+                    break;
+            }
+        }
+        
+        // به‌روزرسانی آمار
+        function updateStats() {
+            document.getElementById('fossils').textContent = fossilsCollected;
+            document.getElementById('level').textContent = level;
+            document.getElementById('health').textContent = health;
+        }
+        
+        // به‌روزرسانی نوار پیشرفت
+        function updateProgress() {
+            const progress = (fossilsCollected / (level * 5)) * 100;
+            document.getElementById('progress').style.width = Math.min(100, progress) + '%';
+        }
+        
+        // افزایش سطح
+        function levelUp() {
+            level++;
+            updateStats();
+            
+            // افزایش سختی
+            createPredators();
+            createFoods();
+            
+            // بهبود سلامتی
+            health = Math.min(100, health + 30);
+            
+            // تغییر ایموجی بازیکن برای سطح جدید
+            player.innerHTML = level > 3 ? '🐲' : '🦖';
+        }
+        
+        // نمایش اطلاعات دایناسور
+        function showDinoInfo() {
+            const randomDino = dinoData[Math.floor(Math.random() * dinoData.length)];
+            const infoContent = document.getElementById('infoContent');
+            
+            infoContent.innerHTML = `
+                <div class="dino-card">
+                    <h4>${randomDino.emoji} ${randomDino.name}</h4>
+                    <p>⏳ دوره: ${randomDino.period}</p>
+                    <p>🍽️ رژیم غذایی: ${randomDino.diet}</p>
+                    <p>📏 اندازه: ${randomDino.size}</p>
+                    <p>💡 نکته جالب: ${randomDino.fact}</p>
+                </div>
+            `;
+            
+            document.getElementById('dinoInfo').style.display = 'block';
+        }
+        
+        // بستن اطلاعات دایناسور
+        function hideInfo() {
+            document.getElementById('dinoInfo').style.display = 'none';
+        }
+        
+        // پاک کردن منطقه بازی
+        function clearGameArea() {
+            fossils.forEach(fossil => {
+                if (fossil.parentNode) {
+                    gameArea.removeChild(fossil);
+                }
+            });
+            
+            predators.forEach(predator => {
+                if (predator.element.parentNode) {
+                    gameArea.removeChild(predator.element);
+                }
+            });
+            
+            document.querySelectorAll('.emoji').forEach(item => {
+                if (item.id && item.id.startsWith('food-')) {
+                    gameArea.removeChild(item);
+                }
+            });
+            
+            fossils = [];
+            predators = [];
+        }
+        
+        // پایان بازی
+        function endGame() {
+            clearInterval(gameInterval);
+            gameActive = false;
+            alert(`🎮 بازی تمام شد! 🏆\nامتیاز نهایی شما: ${fossilsCollected}\nسطح شما: ${level}`);
+            
+            // بازنشانی موقعیت بازیکن
+            player.style.left = '50px';
+            player.style.top = '50px';
+            player.innerHTML = emojis.player;
+        }
+    </script>
+</body>
+</html>
